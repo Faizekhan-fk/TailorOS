@@ -4,14 +4,13 @@ An enterprise-grade SaaS system for managing tailoring businesses: customers, or
 
 ## Project Status
 
-- **Phase 0** ✅ — Product specification (20 core modules)
-- **Phase 1** ✅ — Development environment setup
-- **Phase 2** ✅ — Backend API scaffold (Express + MongoDB + Redis)
-- **Phase 3** ✅ — Docker architecture (5 services)
-- **Phase 4** ✅ — Complete docker-compose stack
-- **Phase 5** → Authentication (JWT + RBAC)
-- **Phase 6** → Customer module (CRUD operations)
-- **Phase 7** → Production deployment
+- **Phase 1** ✅ — Docker foundation (frontend, backend, MongoDB, Redis, Nginx)
+- **Phase 2** ✅ — Authentication (Zod validation, JWT rotation, bcrypt, protected sessions)
+- **Phase 3** ✅ — RBAC and granular permissions
+- **Phase 4** ✅ — Multi-tenancy enforcement
+- **Phase 5** ✅ — Customer enhancements and measurement templates
+- **Phase 6** ✅ — Measurement profiles and order snapshots
+- **Phase 7** → Garments
 
 ---
 
@@ -32,40 +31,36 @@ cd TailorOS
 # Copy environment template
 cp .env.example .env
 
-# Edit secrets (IMPORTANT)
+# Edit secrets if needed
 nano .env
-# Change: JWT_SECRET=your-production-key-here
 ```
 
-### 2. Start Everything
+### 2. Start the app
 
 ```bash
-# Pull images and start all services
-docker compose up --pull always
-
-# In background
-docker compose up -d
+docker compose up --build -d
 ```
 
-**Services**:
-- 🌐 **Frontend** (React): http://localhost
-- 🔌 **API** (Express): http://localhost:5000
-- 🗄️ **MongoDB**: localhost:27017
-- ⚡ **Redis**: localhost:6379
-- 🔀 **Nginx** (Proxy): http://localhost:8080 (alternate)
+### 3. Open the app
 
-### 3. Verify
+- 🌐 Frontend: http://localhost
+- 🔌 API: http://localhost/api/v1
+- 🗄️ MongoDB: localhost:27017
+- ⚡ Redis: localhost:6379
+
+### 4. Verify
 
 ```bash
-# Check all services are healthy
 docker compose ps
-
-# Test API
-curl http://localhost:5000/health
-
-# View logs
-docker compose logs -f backend
+curl http://localhost/api/v1/health
 ```
+
+### 5. Login
+
+Use the default admin account:
+
+- Email: john@example.com
+- Password: password123
 
 ---
 
@@ -89,15 +84,14 @@ Frontend   Backend API
      (Data)  (Cache)
 ```
 
-### Five-Service Stack
+### Simple Stack
 
-| Service    | Image             | Port   | Purpose                      |
-|-----------|------------------|--------|------------------------------|
-| **Frontend** | node:20-alpine + nginx | 5173 → 80 | React dashboard + static files |
-| **Backend** | node:20-alpine   | 5000   | Express REST API + WebSocket |
-| **MongoDB** | mongo:latest     | 27017  | Primary data store           |
-| **Redis** | redis:latest     | 6379   | Cache, sessions, job queue   |
-| **Nginx** | nginx:alpine     | 8080   | Reverse proxy, load balancing |
+| Service | Port | Purpose |
+|--------|------|---------|
+| **Frontend + API proxy** | 80 | React app and API routing |
+| **Backend API** | 5000 | Express API server |
+| **MongoDB** | 27017 | Primary data store |
+| **Redis** | 6379 | Cache and session storage |
 
 ---
 

@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /app/backend
 
 # Copy package files
-COPY backend/package.json backend/package-lock.json ./
+COPY backend/package.json ./
 
 # Install dependencies
 RUN npm install --no-optional --legacy-peer-deps
@@ -16,7 +16,7 @@ EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1:5000/health || exit 1
 
 # Start server
 CMD ["npm", "start"]
