@@ -16,6 +16,10 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const activeShopId = localStorage.getItem('activeShopId');
+  if (activeShopId) {
+    config.headers['X-Shop-Id'] = activeShopId;
+  }
   return config;
 });
 
@@ -88,6 +92,10 @@ export const measurementTemplatesAPI = {
   create: (data) => api.post('/measurements/templates', data),
   update: (id, data) => api.patch(`/measurements/templates/${id}`, data),
   delete: (id) => api.delete(`/measurements/templates/${id}`),
+};
+
+export const shopsAPI = {
+  list: () => api.get('/shops'),
 };
 
 // Garments endpoints

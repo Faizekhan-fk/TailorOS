@@ -32,7 +32,7 @@ export const getTailors = async (req, res, next) => {
 
     const total = await Tailor.countDocuments(query);
     const tailors = await Tailor.find(query)
-      .populate('user', 'firstName lastName email phone')
+      .populate('user', 'name email phone')
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ rating: -1 });

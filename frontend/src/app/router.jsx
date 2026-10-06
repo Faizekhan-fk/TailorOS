@@ -12,6 +12,7 @@ import { customersAPI, garmentsAPI, ordersAPI, inventoryAPI, suppliersAPI, tailo
 import CustomerForm from '../features/customers/CustomerForm';
 import CustomerDetail from '../features/customers/CustomerDetail';
 import MeasurementTemplatesPage from '../features/measurements/MeasurementTemplatesPage';
+import ShopContextSelector from '../features/shops/ShopContextSelector';
 
 function PublicRoute({ children }) { const { user } = useAuthStore(); return user ? <Navigate to="/dashboard" replace /> : children; }
 
@@ -26,7 +27,7 @@ const configs = {
 function Protected({ children }) { return <ProtectedRoute>{children}</ProtectedRoute>; }
 
 export default function Router() {
-  return <BrowserRouter><Routes>
+  return <BrowserRouter><ShopContextSelector /><Routes>
     <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} /><Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
     <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
     <Route path="/customers" element={<Protected><ListPage title="Customers" API={customersAPI} createLink="/customers/new" detailPath="/customers" /></Protected>} />

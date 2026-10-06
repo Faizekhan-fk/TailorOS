@@ -20,6 +20,7 @@ import suppliersRoutes from './modules/suppliers/suppliers.routes.js';
 import tailorsRoutes from './modules/tailors/tailors.routes.js';
 import usersRoutes from './modules/users/user.routes.js';
 import measurementsRoutes from './modules/measurements/measurement.routes.js';
+import shopsRoutes from './modules/shops/shops.routes.js';
 
 const app = express();
 
@@ -49,7 +50,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Shop-Id'],
 }));
 
 // Body parser
@@ -77,6 +78,7 @@ for (const prefix of apiPrefixes) {
   app.use(`${prefix}/tailors`, tailorsRoutes);
   app.use(`${prefix}/users`, usersRoutes);
   app.use(`${prefix}/measurements`, measurementsRoutes);
+  app.use(`${prefix}/shops`, shopsRoutes);
 }
 
 // Health check for Docker
@@ -98,4 +100,3 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 export default app;
-
