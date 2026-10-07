@@ -1,22 +1,16 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { config } from '../config/env.js';
+import { SYSTEM_ROLES } from '../config/rolePermissions.js';
 
-export const USER_ROLES = [
-  'SUPER_ADMIN',
-  'SHOP_OWNER',
-  'MANAGER',
-  'RECEPTIONIST',
-  'TAILOR',
-  'CUTTER',
-  'QUALITY_CONTROL',
-  'ACCOUNTANT',
-  // Legacy values remain readable while existing development data is migrated.
+const LEGACY_USER_ROLES = [
   'admin',
   'manager',
   'tailor',
   'staff',
 ];
+
+export const USER_ROLES = [...SYSTEM_ROLES, ...LEGACY_USER_ROLES];
 
 const userSchema = new mongoose.Schema(
   {

@@ -1,7 +1,7 @@
-import Customer from '../../models/Customer.js';
 import MeasurementTemplate from '../../models/MeasurementTemplate.js';
 import { scopedFilter } from '../../middleware/tenant.js';
-import { createCustomerSchema, updateCustomerSchema } from './customers.validation.js';
+import { createCustomerSchema, listCustomersSchema, updateCustomerSchema } from './customers.validation.js';
+import * as customerService from './customer.service.js';
 import {
   createMeasurementProfile,
   getMeasurementProfile,
@@ -30,30 +30,18 @@ const nameParts = (input) => {
   };
 };
 
-const customerNumber = () => `CUS-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-
 export const createCustomer = async (req, res, next) => {
   try {
     const input = parse(createCustomerSchema, req.body);
     const names = nameParts(input);
-
-    const customer = new Customer({
-      shopId: req.tenantId,
-      customerNumber: customerNumber(),
+    const customer = await customerService.createCustomer(req, {
+      ...input,
       ...names,
       email: input.email || undefined,
-      phone: input.phone,
       whatsapp: input.whatsapp || undefined,
-      gender: input.gender,
-      address: input.address,
-      measurements: input.measurements,
-      notes: input.notes,
-      tags: input.tags,
       status: input.status || 'ACTIVE',
-      createdBy: req.user.userId,
     });
 
-    await customer.save();
     res.status(201).json({ success: true, customer });
   } catch (error) {
     next(error);
@@ -62,33 +50,9 @@ export const createCustomer = async (req, res, next) => {
 
 export const getCustomers = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
-    const skip = (page - 1) * limit;
-
-    let query = scopedFilter(req);
-    if (search) {
-      query = scopedFilter(req, {
-        $or: [
-          { firstName: { $regex: search, $options: 'i' } },
-          { lastName: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { phone: { $regex: search, $options: 'i' } },
-        ],
-      });
-    }
-
-    const total = await Customer.countDocuments(query);
-    const customers = await Customer.find(query)
-      .populate('createdBy', 'firstName lastName email')
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      customers,
-      pagination: { page: parseInt(page), limit: parseInt(limit), total },
-    });
+    const filters = parse(listCustomersSchema, req.query);
+    const result = await customerService.listCustomers(req, filters);
+    res.json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
@@ -96,7 +60,7 @@ export const getCustomers = async (req, res, next) => {
 
 export const getCustomerById = async (req, res, next) => {
   try {
-    const customer = await Customer.findOne(scopedFilter(req, { _id: req.params.id })).populate('createdBy', 'firstName lastName email');
+    const customer = await customerService.getCustomer(req, req.params.id);
 
     if (!customer) {
       return res.status(404).json({ error: 'Customer not found' });
@@ -112,15 +76,10 @@ export const updateCustomer = async (req, res, next) => {
   try {
     const input = parse(updateCustomerSchema, req.body);
     const changes = { ...input };
-    if (input.name || input.firstName || input.lastName) Object.assign(changes, nameParts(input));
     if (changes.email === '') changes.email = undefined;
     if (changes.whatsapp === '') changes.whatsapp = undefined;
 
-    const customer = await Customer.findOneAndUpdate(
-      scopedFilter(req, { _id: req.params.id }),
-      changes,
-      { new: true, runValidators: true }
-    );
+    const customer = await customerService.updateCustomer(req, req.params.id, changes);
 
     if (!customer) {
       return res.status(404).json({ error: 'Customer not found' });
@@ -143,7 +102,7 @@ export const updateCustomerMeasurements = async (req, res, next) => {
     const validationError = validateMeasurementValues(template, values);
     if (validationError) return res.status(400).json({ success: false, message: validationError, errors: [] });
 
-    const customer = await Customer.findOne(scopedFilter(req, { _id: req.params.id }));
+    const customer = await customerService.getCustomerDocument(req, req.params.id);
     if (!customer) return res.status(404).json({ success: false, message: 'Customer not found', errors: [] });
     const profile = await createMeasurementProfile({ req, customer, template, values, notes: req.body.notes });
     return res.status(201).json({ success: true, message: `Measurement profile v${profile.version} created`, data: { profile, customer } });
@@ -154,7 +113,7 @@ export const updateCustomerMeasurements = async (req, res, next) => {
 
 export const getCustomerMeasurements = async (req, res, next) => {
   try {
-    const customer = await Customer.findOne(scopedFilter(req, { _id: req.params.id }));
+    const customer = await customerService.getCustomerDocument(req, req.params.id);
     if (!customer) return res.status(404).json({ success: false, message: 'Customer not found', errors: [] });
     const profiles = await listMeasurementProfiles(req, customer._id);
     return res.json({ success: true, message: 'Measurement profiles loaded', data: { profiles } });
@@ -165,6 +124,8 @@ export const getCustomerMeasurements = async (req, res, next) => {
 
 export const getCustomerMeasurement = async (req, res, next) => {
   try {
+    const customer = await customerService.getCustomerDocument(req, req.params.id);
+    if (!customer) return res.status(404).json({ success: false, message: 'Customer not found', errors: [] });
     const profile = await getMeasurementProfile(req, req.params.id, req.params.profileId);
     if (!profile) return res.status(404).json({ success: false, message: 'Measurement profile not found', errors: [] });
     return res.json({ success: true, message: 'Measurement profile loaded', data: { profile } });
@@ -175,13 +136,13 @@ export const getCustomerMeasurement = async (req, res, next) => {
 
 export const deleteCustomer = async (req, res, next) => {
   try {
-    const customer = await Customer.findOneAndDelete(scopedFilter(req, { _id: req.params.id }));
+    const customer = await customerService.softDeleteCustomer(req, req.params.id);
 
     if (!customer) {
       return res.status(404).json({ error: 'Customer not found' });
     }
 
-    res.json({ success: true, message: 'Customer deleted' });
+    res.json({ success: true, message: 'Customer deactivated' });
   } catch (error) {
     next(error);
   }

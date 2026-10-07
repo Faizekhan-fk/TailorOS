@@ -1,6 +1,7 @@
 import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import app from '../src/app.js';
 import User from '../src/models/User.js';
@@ -54,7 +55,13 @@ test('rejects invalid registration data', async () => {
 
 test('registers a shop owner without exposing credentials', async () => {
   const { response, body } = await request('/auth/register', {
-    method: 'POST', body: JSON.stringify({ name: 'Phase Two Owner', email, password: 'Password123!', phone: '555-0100' }),
+    method: 'POST', body: JSON.stringify({
+      name: 'Phase Two Owner',
+      email,
+      password: 'Password123!',
+      phone: '555-0100',
+      role: 'SUPER_ADMIN',
+    }),
   });
   assert.equal(response.status, 201);
   assert.equal(body.success, true);
@@ -63,6 +70,19 @@ test('registers a shop owner without exposing credentials', async () => {
   assert.ok(body.data.accessToken);
   accessToken = body.data.accessToken;
   userId = body.data.user.id;
+});
+
+test('ignores a role claim in the access token and uses the stored user role', async () => {
+  const tokenWithForgedRole = jwt.sign(
+    { userId, role: 'SUPER_ADMIN' },
+    config.JWT_SECRET,
+    { expiresIn: '5m' }
+  );
+  const { response } = await request('/shops', {
+    headers: { Authorization: `Bearer ${tokenWithForgedRole}` },
+  });
+
+  assert.equal(response.status, 403);
 });
 
 test('rejects a duplicate email', async () => {
@@ -136,6 +156,28 @@ test('prevents a shop owner from assigning SUPER_ADMIN', async () => {
     body: JSON.stringify({ role: 'SUPER_ADMIN' }),
   });
   assert.equal(promoted.response.status, 403);
+});
+
+test('requires role and rejects client-provided internal user fields', async () => {
+  const missingRole = await request('/users', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ name: 'Missing Role', email: `missing-role-${Date.now()}@example.com`, password: 'Password123!' }),
+  });
+  const clientShop = await request('/users', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({
+      name: 'Forged Shop',
+      email: `forged-shop-${Date.now()}@example.com`,
+      password: 'Password123!',
+      role: 'TAILOR',
+      shopId: new mongoose.Types.ObjectId().toString(),
+    }),
+  });
+
+  assert.equal(missingRole.response.status, 400);
+  assert.equal(clientShop.response.status, 400);
 });
 
 test('rotates the refresh token', async () => {

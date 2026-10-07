@@ -1,0 +1,250 @@
+.customers-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 2.5rem;
+  color: #19252a;
+}
+
+.customers-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.customers-header h1 {
+  margin: 0.25rem 0;
+  font-family: Georgia, serif;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+
+.customers-header p:last-child {
+  margin: 0;
+  color: #718087;
+}
+
+.customers-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(140px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #d9ddd9;
+  background: #fffdf9;
+}
+
+.customers-filters label {
+  display: grid;
+  gap: 0.35rem;
+  color: #526067;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.customers-filters input,
+.customers-filters select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d9ddd9;
+  border-radius: 3px;
+  background: #fff;
+  color: #19252a;
+  font: inherit;
+}
+
+.customers-filters input:focus,
+.customers-filters select:focus {
+  outline: 2px solid rgba(201, 93, 59, 0.22);
+  border-color: #c95d3b;
+}
+
+.customers-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #d9ddd9;
+  background: #fffdf9;
+}
+
+.customers-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.customers-table th,
+.customers-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e8e9e5;
+  white-space: nowrap;
+}
+
+.customers-table th {
+  color: #718087;
+  background: #f8f7f2;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.customers-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.customers-table td:nth-child(2) {
+  min-width: 170px;
+  white-space: normal;
+}
+
+.customer-number {
+  color: #526067;
+  font-variant-numeric: tabular-nums;
+}
+
+.customer-name,
+.customer-email {
+  display: block;
+}
+
+.customer-name {
+  color: #19252a;
+  font-weight: 700;
+}
+
+.customer-email {
+  margin-top: 0.2rem;
+  color: #718087;
+  font-size: 0.78rem;
+}
+
+.customer-status {
+  display: inline-block;
+  padding: 0.25rem 0.55rem;
+  border-radius: 99px;
+  background: #edf5ee;
+  color: #31643a;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.customer-status-inactive {
+  background: #f1f1ef;
+  color: #687176;
+}
+
+.customer-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.customer-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9f3f29;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.customer-action:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.customer-action-danger {
+  color: #a3382c;
+}
+
+.customers-state {
+  display: grid;
+  justify-items: center;
+  gap: 0.7rem;
+  min-height: 180px;
+  padding: 2rem;
+  border: 1px solid #d9ddd9;
+  background: #fffdf9;
+  color: #718087;
+  text-align: center;
+}
+
+.customers-state h2,
+.customers-state p {
+  margin: 0;
+}
+
+.customers-state h2 {
+  color: #19252a;
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+
+.customers-state-error {
+  color: #8f3625;
+}
+
+.customers-state-error button,
+.customers-pagination button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #d9ddd9;
+  border-radius: 3px;
+  background: #fff;
+  color: #19252a;
+  cursor: pointer;
+}
+
+.customers-state-error button:hover,
+.customers-pagination button:hover:not(:disabled) {
+  border-color: #c95d3b;
+}
+
+.customers-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  color: #718087;
+  font-size: 0.82rem;
+}
+
+.customers-pagination div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.customers-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 800px) {
+  .customers-page {
+    padding: 1.25rem;
+  }
+
+  .customers-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customers-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .customers-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .customers-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

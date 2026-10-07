@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { shopsAPI } from '../../services/api';
 import { useAuthStore } from '../auth/auth.store';
+import { isSuperAdmin } from '../auth/roles';
 
 const ACTIVE_SHOP_KEY = 'activeShopId';
 
@@ -11,10 +12,10 @@ export default function ShopContextSelector() {
     () => localStorage.getItem(ACTIVE_SHOP_KEY) || ''
   );
   const [error, setError] = useState('');
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const hasSuperAdminRole = isSuperAdmin(user?.role);
 
   useEffect(() => {
-    if (!isSuperAdmin) {
+    if (!hasSuperAdminRole) {
       localStorage.removeItem(ACTIVE_SHOP_KEY);
       setSelectedShopId('');
       setShops([]);
@@ -46,9 +47,9 @@ export default function ShopContextSelector() {
     return () => {
       cancelled = true;
     };
-  }, [isSuperAdmin]);
+  }, [hasSuperAdminRole]);
 
-  if (!isSuperAdmin) return null;
+  if (!hasSuperAdminRole) return null;
 
   const handleChange = (event) => {
     const shopId = event.target.value;

@@ -3,7 +3,11 @@ import Customer from '../../models/Customer.js';
 import Garment from '../../models/Garment.js';
 import User from '../../models/User.js';
 import MeasurementProfile from '../../models/MeasurementProfile.js';
+import Payment from '../../models/Payment.js';
+import ProductionJob from '../../models/ProductionJob.js';
 import { scopedFilter } from '../../middleware/tenant.js';
+import { createJobsForOrder, cancelProductionForOrder } from '../production/production.service.js';
+import { publishBusinessEvent } from '../../services/businessEvents.js';
 
 export const createOrder = async (req, res, next) => {
   try {
@@ -13,7 +17,7 @@ export const createOrder = async (req, res, next) => {
       return res.status(400).json({ error: 'Customer, items, and total amount are required' });
     }
 
-    const customer = await Customer.findOne(scopedFilter(req, { _id: customerId }));
+    const customer = await Customer.findOne(scopedFilter(req, { _id: customerId, deletedAt: null }));
     if (!customer) {
       return res.status(404).json({ error: 'Customer not found in this shop' });
     }
@@ -64,11 +68,23 @@ export const createOrder = async (req, res, next) => {
     });
 
     await order.save();
+    try {
+      await createJobsForOrder(req, order);
+    } catch (error) {
+      await ProductionJob.deleteMany(scopedFilter(req, { orderId: order._id }));
+      await Order.deleteOne(scopedFilter(req, { _id: order._id }));
+      throw error;
+    }
 
     // Update customer stats
     customer.totalOrders += 1;
     customer.totalSpent += totalAmount;
     await customer.save();
+    await publishBusinessEvent({
+      shopId: req.tenantId, type: 'order.created', title: 'New order received',
+      message: `Order ${order.orderNumber} was created.`,
+      resourceType: 'order', resourceId: order._id,
+    });
 
     res.status(201).json({ success: true, order });
   } catch (error) {
@@ -125,15 +141,43 @@ export const getOrderById = async (req, res, next) => {
 
 export const updateOrder = async (req, res, next) => {
   try {
-    const { status, deliveryDate, assignedTo, payment, notes } = req.body;
+    if (Object.hasOwn(req.body, 'payment')) {
+      return res.status(400).json({ success: false, message: 'Use the payments API to record payment changes', errors: [] });
+    }
+    const { status, deliveryDate, assignedTo, notes } = req.body;
+    if (status !== undefined && status !== 'delivered') {
+      return res.status(400).json({
+        success: false,
+        message: 'Order progress is controlled by production; use the cancel endpoint to cancel an order',
+        errors: [],
+      });
+    }
+    if (status === 'delivered') {
+      const remainingJobs = await ProductionJob.countDocuments(scopedFilter(req, {
+        orderId: req.params.id,
+        stage: { $ne: 'ready' },
+      }));
+      const totalJobs = await ProductionJob.countDocuments(scopedFilter(req, { orderId: req.params.id }));
+      if (!totalJobs || remainingJobs) {
+        return res.status(409).json({
+          success: false,
+          message: 'All production jobs must be ready before the order can be delivered',
+          errors: [],
+        });
+      }
+    }
 
     if (assignedTo && !(await User.exists(scopedFilter(req, { _id: assignedTo })))) {
       return res.status(400).json({ error: 'Assigned user does not belong to this shop' });
     }
 
+    const changes = Object.fromEntries(
+      Object.entries({ status, deliveryDate, assignedTo, notes })
+        .filter(([, value]) => value !== undefined)
+    );
     const order = await Order.findOneAndUpdate(
       scopedFilter(req, { _id: req.params.id }),
-      { status, deliveryDate, assignedTo, payment, notes },
+      { $set: changes },
       { new: true, runValidators: true }
     )
       .populate('customer')
@@ -144,6 +188,7 @@ export const updateOrder = async (req, res, next) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    if (order.status === 'cancelled') await cancelProductionForOrder(req, order._id);
     res.json({ success: true, message: 'Order updated', order });
   } catch (error) {
     next(error);
@@ -152,8 +197,13 @@ export const updateOrder = async (req, res, next) => {
 
 export const cancelOrder = async (req, res, next) => {
   try {
+    const existingOrder = await Order.findOne(scopedFilter(req, { _id: req.params.id })).select('status');
+    if (!existingOrder) return res.status(404).json({ error: 'Order not found' });
+    if (existingOrder.status === 'delivered') {
+      return res.status(409).json({ success: false, message: 'Delivered orders cannot be cancelled', errors: [] });
+    }
     const order = await Order.findOneAndUpdate(
-      scopedFilter(req, { _id: req.params.id }),
+      scopedFilter(req, { _id: req.params.id, status: { $ne: 'delivered' } }),
       { status: 'cancelled' },
       { new: true }
     );
@@ -162,6 +212,12 @@ export const cancelOrder = async (req, res, next) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    await cancelProductionForOrder(req, order._id);
+    await publishBusinessEvent({
+      shopId: req.tenantId, type: 'order.cancelled', title: 'Order cancelled',
+      message: `Order ${order.orderNumber} was cancelled.`,
+      resourceType: 'order', resourceId: order._id,
+    });
     res.json({ success: true, message: 'Order cancelled', order });
   } catch (error) {
     next(error);
@@ -170,12 +226,21 @@ export const cancelOrder = async (req, res, next) => {
 
 export const deleteOrder = async (req, res, next) => {
   try {
+    const hasPayments = await Payment.exists(scopedFilter(req, { orderId: req.params.id }));
+    if (hasPayments) {
+      return res.status(409).json({
+        success: false,
+        message: 'Orders with payment history cannot be deleted; cancel the order instead',
+        errors: [],
+      });
+    }
     const order = await Order.findOneAndDelete(scopedFilter(req, { _id: req.params.id }));
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    await ProductionJob.deleteMany(scopedFilter(req, { orderId: order._id }));
     res.json({ success: true, message: 'Order deleted' });
   } catch (error) {
     next(error);

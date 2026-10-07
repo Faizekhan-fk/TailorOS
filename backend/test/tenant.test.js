@@ -58,6 +58,12 @@ test('isolates business records by the authenticated shop', async () => {
   const ownerA = await register(emailA, 'Tenant A Owner');
   const ownerB = await register(emailB, 'Tenant B Owner');
 
+  const ownerAProfile = await call(`/users/${ownerA.user.id}`, ownerA.accessToken);
+  const crossShopProfile = await call(`/users/${ownerA.user.id}`, ownerB.accessToken);
+  assert.equal(ownerAProfile.response.status, 200);
+  assert.equal(ownerAProfile.body.data.user.id, ownerA.user.id);
+  assert.equal(crossShopProfile.response.status, 404);
+
   const created = await call('/customers', ownerA.accessToken, {
     method: 'POST',
     body: JSON.stringify({
@@ -67,9 +73,15 @@ test('isolates business records by the authenticated shop', async () => {
       shopId: ownerB.user.shopId,
     }),
   });
-  assert.equal(created.response.status, 201);
-  customerId = created.body.customer._id;
-  assert.equal(String(created.body.customer.shopId), String(ownerA.user.shopId));
+  assert.equal(created.response.status, 400);
+
+  const tenantScopedCreate = await call('/customers', ownerA.accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ firstName: 'Private', lastName: 'Customer', phone: '555-1000' }),
+  });
+  assert.equal(tenantScopedCreate.response.status, 201);
+  customerId = tenantScopedCreate.body.customer._id;
+  assert.equal(String(tenantScopedCreate.body.customer.shopId), String(ownerA.user.shopId));
 
   const listFromB = await call('/customers', ownerB.accessToken);
   assert.equal(listFromB.response.status, 200);

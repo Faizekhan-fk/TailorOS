@@ -1,21 +1,32 @@
-export const PERMISSIONS = Object.freeze([
-  'customers.view', 'customers.create', 'customers.update', 'customers.delete',
-  'measurements.view', 'measurements.create', 'measurements.update', 'measurements.delete',
-  'garments.view', 'garments.create', 'garments.update', 'garments.delete',
-  'orders.view', 'orders.create', 'orders.update', 'orders.cancel', 'orders.delete',
-  'payments.view', 'payments.create', 'payments.update', 'payments.delete',
-  'production.view', 'production.create', 'production.update', 'production.assign',
-  'inventory.view', 'inventory.create', 'inventory.update', 'inventory.delete', 'inventory.adjust',
-  'suppliers.view', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
-  'purchases.view', 'purchases.create', 'purchases.update', 'purchases.delete',
-  'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
-  'reports.view',
-  'notifications.view', 'notifications.manage',
-  'users.view', 'users.create', 'users.update', 'users.delete',
-  'roles.view', 'roles.manage',
-  'settings.view', 'settings.manage',
-  'audit_logs.view',
-]);
+export const PERMISSION_CATALOG = Object.freeze({
+  customers: Object.freeze(['view', 'create', 'update', 'delete']),
+  measurements: Object.freeze(['view', 'create', 'update', 'delete']),
+  garments: Object.freeze(['view', 'create', 'update', 'delete']),
+  orders: Object.freeze(['view', 'create', 'update', 'cancel', 'delete']),
+  payments: Object.freeze(['view', 'create', 'update', 'delete']),
+  production: Object.freeze(['view', 'create', 'update', 'assign']),
+  inventory: Object.freeze(['view', 'create', 'update', 'delete', 'adjust']),
+  suppliers: Object.freeze(['view', 'create', 'update', 'delete']),
+  purchases: Object.freeze(['view', 'create', 'update', 'delete']),
+  expenses: Object.freeze(['view', 'create', 'update', 'delete']),
+  invoices: Object.freeze(['view', 'create', 'update', 'delete']),
+  reports: Object.freeze(['view']),
+  notifications: Object.freeze(['view', 'manage']),
+  customer_portal: Object.freeze(['view', 'manage']),
+  analytics: Object.freeze(['view']),
+  users: Object.freeze(['view', 'create', 'update', 'delete']),
+  roles: Object.freeze(['view', 'manage']),
+  settings: Object.freeze(['view', 'manage']),
+  audit_logs: Object.freeze(['view']),
+  whatsapp: Object.freeze(['view', 'send', 'manage']),
+  barcodes: Object.freeze(['view', 'resolve']),
+});
+
+export const PERMISSIONS = Object.freeze(
+  Object.entries(PERMISSION_CATALOG).flatMap(([resource, actions]) =>
+    actions.map((action) => `${resource}.${action}`)
+  )
+);
 
 export const PERMISSION_SET = new Set(PERMISSIONS);
 

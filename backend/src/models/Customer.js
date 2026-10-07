@@ -6,7 +6,6 @@ const customerSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Shop',
       required: true,
-      index: true,
     },
     customerNumber: {
       type: String,
@@ -30,21 +29,19 @@ const customerSchema = new mongoose.Schema(
     email: {
       type: String,
       lowercase: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
+      trim: true,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email'],
     },
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
     },
     whatsapp: { type: String, trim: true },
+    whatsappOptIn: { type: Boolean, default: false },
+    whatsappOptInAt: { type: Date, default: null },
+    whatsappOptInSource: { type: String, trim: true, maxlength: 120 },
     gender: { type: String, enum: ['male', 'female', 'other', 'prefer_not_to_say'] },
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      zipCode: String,
-      country: String,
-    },
+    address: { type: mongoose.Schema.Types.Mixed },
     measurementTemplateId: { type: mongoose.Schema.Types.ObjectId, ref: 'MeasurementTemplate' },
     currentMeasurementProfileId: { type: mongoose.Schema.Types.ObjectId, ref: 'MeasurementProfile' },
     measurements: { type: Map, of: mongoose.Schema.Types.Mixed, default: () => new Map() },
@@ -58,8 +55,13 @@ const customerSchema = new mongoose.Schema(
     },
     notes: String,
     tags: { type: [String], default: [] },
-    status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE', index: true },
+    status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+    deletedAt: { type: Date, default: null },
     createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
@@ -68,6 +70,10 @@ const customerSchema = new mongoose.Schema(
 );
 
 customerSchema.index({ shopId: 1, phone: 1 });
+customerSchema.index({ shopId: 1, email: 1 });
+customerSchema.index({ shopId: 1, whatsapp: 1 });
+customerSchema.index({ shopId: 1, status: 1, createdAt: -1 });
+customerSchema.index({ shopId: 1, deletedAt: 1, createdAt: -1 });
 customerSchema.index({ shopId: 1, customerNumber: 1 }, { unique: true });
 
 const Customer = mongoose.model('Customer', customerSchema);

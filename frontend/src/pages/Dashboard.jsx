@@ -73,6 +73,28 @@ export default function Dashboard() {
               <span className="icon">📦</span>
               <span>View Orders</span>
             </a>
+            {hasPermission(user, 'payments.view') && (
+              <a href="/payments" className="link-card">
+                <span className="icon">💳</span>
+                <span>Payments</span>
+              </a>
+            )}
+            {hasPermission(user, 'production.view') && (
+              <a href="/production" className="link-card">
+                <span className="icon">🧵</span>
+                <span>Production Board</span>
+              </a>
+            )}
+            {hasPermission(user, 'purchases.view') && <a href="/purchases" className="link-card"><span className="icon">🧾</span><span>Purchases</span></a>}
+            {hasPermission(user, 'expenses.view') && <a href="/expenses" className="link-card"><span className="icon">💸</span><span>Expenses</span></a>}
+            {hasPermission(user, 'invoices.view') && <a href="/invoices" className="link-card"><span className="icon">📄</span><span>Invoices</span></a>}
+            {hasPermission(user, 'notifications.view') && <a href="/notifications" className="link-card"><span className="icon">🔔</span><span>Notifications</span></a>}
+            {hasPermission(user, 'reports.view') && <a href="/reports" className="link-card"><span className="icon">📑</span><span>Reports</span></a>}
+            {hasPermission(user, 'analytics.view') && <a href="/analytics" className="link-card"><span className="icon">📈</span><span>Analytics</span></a>}
+            {hasPermission(user, 'audit_logs.view') && <a href="/audit-logs" className="link-card"><span className="icon">🛡️</span><span>Audit log</span></a>}
+            {hasPermission(user, 'customer_portal.view') && <a href="/portal/accounts" className="link-card"><span className="icon">🧑‍💻</span><span>Customer portal accounts</span></a>}
+            {hasPermission(user, 'whatsapp.view') && <a href="/whatsapp" className="link-card"><span className="icon">💬</span><span>WhatsApp</span></a>}
+            {hasPermission(user, 'barcodes.view') && <a href="/barcodes" className="link-card"><span className="icon">▦</span><span>Barcodes &amp; QR</span></a>}
             <a href="/garments" className="link-card">
               <span className="icon">👔</span>
               <span>Garment Types</span>

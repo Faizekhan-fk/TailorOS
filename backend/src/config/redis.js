@@ -4,25 +4,20 @@ import { config } from './env.js';
 let redisClient = null;
 
 export const connectRedis = async () => {
-  try {
-    redisClient = createClient({
-      socket: {
-        host: config.REDIS_HOST,
-        port: config.REDIS_PORT,
-        reconnectStrategy: (retries) => Math.min(retries * 50, 500),
-      },
-      db: config.REDIS_DB,
-    });
-    
-    redisClient.on('error', (err) => console.error('Redis Client Error:', err));
-    redisClient.on('ready', () => console.log('✓ Redis connected'));
-    
-    await redisClient.connect();
-    return redisClient;
-  } catch (error) {
-    console.warn('⚠ Redis connection failed (continuing without cache):', error.message);
-    return null;
-  }
+  if (redisClient?.isReady) return redisClient;
+  redisClient = createClient({
+    socket: {
+      host: config.REDIS_HOST,
+      port: config.REDIS_PORT,
+      ...(config.REDIS_PASSWORD ? { password: config.REDIS_PASSWORD } : {}),
+      reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+    },
+    database: config.REDIS_DB,
+  });
+  redisClient.on('error', (error) => console.error('Redis client error:', error));
+  redisClient.on('ready', () => console.log('✓ Redis connected'));
+  await redisClient.connect();
+  return redisClient;
 };
 
 export const disconnectRedis = async () => {
@@ -36,6 +31,15 @@ export const disconnectRedis = async () => {
   }
 };
 
-export const getRedis = () => redisClient;
+export const getRedis = () => {
+  if (!redisClient?.isReady) {
+    const error = new Error('Redis is unavailable');
+    error.status = 503;
+    throw error;
+  }
+  return redisClient;
+};
+
+export const isRedisReady = () => Boolean(redisClient?.isReady);
 
 export default redisClient;

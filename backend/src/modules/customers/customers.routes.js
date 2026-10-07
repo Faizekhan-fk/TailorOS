@@ -23,6 +23,7 @@ router.get('/', requirePermission('customers.view'), getCustomers);
 router.get('/:id', requirePermission('customers.view'), getCustomerById);
 router.get('/:id/measurements', requirePermission('measurements.view'), getCustomerMeasurements);
 router.get('/:id/measurements/:profileId', requirePermission('measurements.view'), getCustomerMeasurement);
+router.patch('/:id', requirePermission('customers.update'), updateCustomer);
 router.put('/:id', requirePermission('customers.update'), updateCustomer);
 router.post('/:id/measurements', requirePermission('measurements.create'), updateCustomerMeasurements);
 router.patch('/:id/measurements', requirePermission('measurements.update'), updateCustomerMeasurements);

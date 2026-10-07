@@ -25,10 +25,23 @@ export const listUsers = async (requestUser, query, tenantId) => {
 };
 
 export const createUser = async (requestUser, input, tenantId) => {
-  const role = input.role || 'RECEPTIONIST';
-  if (role === 'SUPER_ADMIN' && normalizeRole(requestUser.role) !== 'SUPER_ADMIN') {
+  const actorRole = normalizeRole(requestUser.role);
+  const role = input.role;
+  if (role === 'SUPER_ADMIN' && actorRole !== 'SUPER_ADMIN') {
     const error = new Error('Only a super administrator can create super administrators');
     error.status = 403;
+    throw error;
+  }
+  if (actorRole === 'MANAGER' && ['SHOP_OWNER', 'MANAGER'].includes(role)) {
+    const error = new Error('Managers cannot create users with owner or manager access');
+    error.status = 403;
+    throw error;
+  }
+
+  const shopId = actorRole === 'SUPER_ADMIN' ? tenantId : requestUser.shopId;
+  if (!shopId) {
+    const error = new Error('A shop context is required to create users');
+    error.status = 400;
     throw error;
   }
 
@@ -45,7 +58,7 @@ export const createUser = async (requestUser, input, tenantId) => {
     phone: input.phone || undefined,
     passwordHash: input.password,
     role,
-    shopId: tenantId || requestUser.shopId || undefined,
+    shopId,
     status: 'ACTIVE',
     isActive: true,
   });
@@ -53,6 +66,9 @@ export const createUser = async (requestUser, input, tenantId) => {
 };
 
 export const findScopedUser = (requestUser, id, tenantId) => User.findOne({ _id: id, ...scopeFor(requestUser, tenantId) });
+
+export const getUser = (requestUser, id, tenantId) =>
+  findScopedUser(requestUser, id, tenantId);
 
 export const updateUser = async (requestUser, id, input, tenantId) => {
   const user = await findScopedUser(requestUser, id, tenantId);

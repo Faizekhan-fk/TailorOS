@@ -4,8 +4,6 @@ import { config } from '../config/env.js';
 
 const tokenClaims = (user) => ({
   userId: String(user._id || user.id),
-  shopId: user.shopId ? String(user.shopId) : null,
-  role: user.role,
 });
 
 export const hashRefreshToken = (token) =>

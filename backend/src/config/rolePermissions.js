@@ -1,7 +1,11 @@
 import { PERMISSIONS } from './permissions.js';
 
-const all = [...PERMISSIONS];
-const pick = (...permissions) => permissions;
+const all = Object.freeze([...PERMISSIONS]);
+const pick = (...permissions) => {
+  const unknown = permissions.filter((permission) => !PERMISSIONS.includes(permission));
+  if (unknown.length) throw new Error(`Unknown role permission: ${unknown.join(', ')}`);
+  return Object.freeze(permissions);
+};
 
 export const SYSTEM_ROLES = Object.freeze([
   'SUPER_ADMIN',
@@ -33,7 +37,7 @@ export const LEGACY_ROLE_ALIASES = Object.freeze({
   'super-admin': 'SUPER_ADMIN',
 });
 
-const shopOwner = all.filter((permission) => permission !== 'roles.manage');
+const shopOwner = all;
 
 export const ROLE_PERMISSIONS = Object.freeze({
   SUPER_ADMIN: all,
@@ -43,38 +47,46 @@ export const ROLE_PERMISSIONS = Object.freeze({
     'measurements.view', 'measurements.create', 'measurements.update', 'measurements.delete',
     'garments.view', 'garments.create', 'garments.update', 'garments.delete',
     'orders.view', 'orders.create', 'orders.update', 'orders.cancel',
+    'payments.view', 'payments.create', 'payments.update', 'payments.delete',
     'production.view', 'production.create', 'production.update', 'production.assign',
     'inventory.view', 'inventory.create', 'inventory.update', 'inventory.adjust',
     'suppliers.view', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
     'purchases.view', 'purchases.create', 'purchases.update', 'purchases.delete',
-    'expenses.view', 'expenses.create', 'expenses.update',
-    'reports.view', 'notifications.view', 'notifications.manage',
+    'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
+    'invoices.view', 'invoices.create', 'invoices.update',
+    'reports.view', 'analytics.view', 'notifications.view', 'notifications.manage',
+    'customer_portal.view', 'whatsapp.view', 'whatsapp.send', 'whatsapp.manage',
+    'barcodes.view', 'barcodes.resolve',
     'users.view', 'users.create', 'users.update', 'roles.view', 'settings.view',
   ),
   RECEPTIONIST: pick(
     'customers.view', 'customers.create', 'customers.update',
     'measurements.view', 'measurements.create', 'measurements.update',
-    'garments.view', 'orders.view', 'orders.create', 'orders.update', 'orders.cancel',
-    'payments.view', 'payments.create', 'notifications.view',
+    'garments.view', 'orders.view', 'orders.create', 'orders.update',
+    'payments.view', 'payments.create', 'invoices.view', 'notifications.view',
+    'whatsapp.view', 'whatsapp.send', 'barcodes.view', 'barcodes.resolve',
   ),
   TAILOR: pick(
     'customers.view', 'measurements.view', 'garments.view', 'orders.view',
     'production.view', 'production.update', 'inventory.view', 'notifications.view',
+    'barcodes.view', 'barcodes.resolve',
   ),
   CUTTER: pick(
     'customers.view', 'measurements.view', 'garments.view', 'orders.view',
-    'production.view', 'production.update', 'production.assign', 'inventory.view', 'notifications.view',
+    'production.view', 'production.update', 'inventory.view', 'notifications.view',
+    'barcodes.view', 'barcodes.resolve',
   ),
   QUALITY_CONTROL: pick(
-    'customers.view', 'measurements.view', 'garments.view', 'orders.view',
+    'garments.view', 'orders.view',
     'production.view', 'production.update', 'notifications.view',
+    'barcodes.view', 'barcodes.resolve',
   ),
   ACCOUNTANT: pick(
     'customers.view', 'orders.view',
-    'payments.view', 'payments.create', 'payments.update', 'payments.delete',
-    'suppliers.view', 'purchases.view', 'purchases.create', 'purchases.update',
-    'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
-    'reports.view', 'notifications.view', 'audit_logs.view',
+    'payments.view', 'payments.create',
+    'expenses.view', 'expenses.create', 'expenses.update',
+    'purchases.view', 'invoices.view', 'invoices.create', 'reports.view', 'analytics.view',
+    'whatsapp.view', 'barcodes.view', 'barcodes.resolve',
   ),
 });
 

@@ -8,11 +8,24 @@ import Dashboard from '../pages/Dashboard';
 import ListPage from '../pages/ListPage';
 import ResourceForm from '../pages/ResourceForm';
 import ResourceDetail from '../pages/ResourceDetail';
-import { customersAPI, garmentsAPI, ordersAPI, inventoryAPI, suppliersAPI, tailorsAPI } from '../services/api';
-import CustomerForm from '../features/customers/CustomerForm';
+import { garmentsAPI, ordersAPI, inventoryAPI, suppliersAPI, tailorsAPI } from '../services/api';
 import CustomerDetail from '../features/customers/CustomerDetail';
+import CustomersPage from '../features/customers/CustomersPage';
+import CustomerFormPage from '../features/customers/CustomerFormPage';
 import MeasurementTemplatesPage from '../features/measurements/MeasurementTemplatesPage';
 import ShopContextSelector from '../features/shops/ShopContextSelector';
+import PaymentsPage from '../features/payments/PaymentsPage';
+import PaymentFormPage from '../features/payments/PaymentFormPage';
+import PaymentReceiptPage from '../features/payments/PaymentReceiptPage';
+import ProductionPage from '../features/production/ProductionPage';
+import {
+  AnalyticsPage, AuditLogsPage, ExpensesPage, InvoicesPage, NotificationsPage,
+  PortalAccountsPage, PurchasesPage, ReportsPage,
+} from '../features/operations/OperationsPages';
+import { CustomerPortalHome, CustomerPortalLogin } from '../features/portal/CustomerPortalPages';
+import WhatsAppPage from '../features/integrations/WhatsAppPage';
+import BarcodesPage from '../features/integrations/BarcodesPage';
+import { hasPermission } from '../features/auth/permissions';
 
 function PublicRoute({ children }) { const { user } = useAuthStore(); return user ? <Navigate to="/dashboard" replace /> : children; }
 
@@ -25,14 +38,44 @@ const configs = {
 };
 
 function Protected({ children }) { return <ProtectedRoute>{children}</ProtectedRoute>; }
+function PermissionPage({ permission, children }) {
+  const user = useAuthStore((state) => state.user);
+  return hasPermission(user, permission)
+    ? children
+    : <main className="commerce-page"><div className="commerce-alert" role="alert">You do not have permission to view this page.</div></main>;
+}
+function CustomerPortalProtected({ children }) {
+  return localStorage.getItem('portalAccessToken')
+    ? children
+    : <Navigate to="/portal/login" replace />;
+}
 
 export default function Router() {
   return <BrowserRouter><ShopContextSelector /><Routes>
     <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} /><Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
     <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-    <Route path="/customers" element={<Protected><ListPage title="Customers" API={customersAPI} createLink="/customers/new" detailPath="/customers" /></Protected>} />
-    <Route path="/customers/new" element={<Protected><CustomerForm /></Protected>} /><Route path="/customers/:id/edit" element={<Protected><CustomerDetail /></Protected>} /><Route path="/customers/:id" element={<Protected><CustomerDetail /></Protected>} />
+    <Route path="/customers" element={<Protected><CustomersPage /></Protected>} />
+    <Route path="/customers/new" element={<Protected><CustomerFormPage mode="create" /></Protected>} />
+    <Route path="/customers/:id/edit" element={<Protected><CustomerFormPage mode="edit" /></Protected>} />
+    <Route path="/customers/:id" element={<Protected><CustomerDetail /></Protected>} />
     <Route path="/measurements" element={<Protected><MeasurementTemplatesPage /></Protected>} />
+    <Route path="/payments" element={<Protected><PaymentsPage /></Protected>} />
+    <Route path="/payments/new" element={<Protected><PaymentFormPage /></Protected>} />
+    <Route path="/payments/:id" element={<Protected><PaymentReceiptPage /></Protected>} />
+    <Route path="/production" element={<Protected><ProductionPage /></Protected>} />
+    <Route path="/purchases" element={<Protected><PermissionPage permission="purchases.view"><PurchasesPage /></PermissionPage></Protected>} />
+    <Route path="/expenses" element={<Protected><PermissionPage permission="expenses.view"><ExpensesPage /></PermissionPage></Protected>} />
+    <Route path="/invoices" element={<Protected><PermissionPage permission="invoices.view"><InvoicesPage /></PermissionPage></Protected>} />
+    <Route path="/invoices/:id" element={<Protected><PermissionPage permission="invoices.view"><InvoicesPage /></PermissionPage></Protected>} />
+    <Route path="/notifications" element={<Protected><PermissionPage permission="notifications.view"><NotificationsPage /></PermissionPage></Protected>} />
+    <Route path="/reports" element={<Protected><PermissionPage permission="reports.view"><ReportsPage /></PermissionPage></Protected>} />
+    <Route path="/analytics" element={<Protected><PermissionPage permission="analytics.view"><AnalyticsPage /></PermissionPage></Protected>} />
+    <Route path="/audit-logs" element={<Protected><PermissionPage permission="audit_logs.view"><AuditLogsPage /></PermissionPage></Protected>} />
+    <Route path="/portal/accounts" element={<Protected><PermissionPage permission="customer_portal.view"><PortalAccountsPage /></PermissionPage></Protected>} />
+    <Route path="/whatsapp" element={<Protected><PermissionPage permission="whatsapp.view"><WhatsAppPage /></PermissionPage></Protected>} />
+    <Route path="/barcodes" element={<Protected><PermissionPage permission="barcodes.view"><BarcodesPage /></PermissionPage></Protected>} />
+    <Route path="/portal/login" element={<CustomerPortalLogin />} />
+    <Route path="/portal" element={<CustomerPortalProtected><CustomerPortalHome /></CustomerPortalProtected>} />
     {Object.keys(configs).map((kind) => <Route key={kind} path={`/${kind}`} element={<Protected><ListPage title={configs[kind].title} API={configs[kind].api} createLink={`/${kind}/new`} detailPath={`/${kind}`} /></Protected>} />)}
     {Object.keys(configs).map((kind) => {
       const config = configs[kind];

@@ -30,3 +30,14 @@ export const requireTenant = (req, res, next) => {
 export const tenantFilter = (req) => (req.tenantId ? { shopId: req.tenantId } : {});
 
 export const scopedFilter = (req, filter = {}) => ({ ...filter, ...tenantFilter(req) });
+
+export const requireTenantContext = (req, res, next) => {
+  if (!req.tenantId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Select a shop context with X-Shop-Id',
+      errors: [],
+    });
+  }
+  return next();
+};

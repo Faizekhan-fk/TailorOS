@@ -6,8 +6,8 @@ export const createUserSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   phone: z.string().trim().max(30).optional().or(z.literal('')),
   password: z.string().min(8).max(128),
-  role: z.enum(SYSTEM_ROLES).default('RECEPTIONIST'),
-});
+  role: z.enum(SYSTEM_ROLES),
+}).strict();
 
 export const updateUserSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),

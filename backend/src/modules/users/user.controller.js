@@ -1,7 +1,9 @@
+import { publicUser } from '../auth/auth.service.js';
 import { getRolePermissions, SYSTEM_ROLES } from '../../config/rolePermissions.js';
 import {
   createUser,
   deactivateUser,
+  getUser,
   listUsers,
   updateUser,
   updateUserRole,
@@ -34,6 +36,16 @@ export const getUsers = async (req, res, next) => {
   try {
     const data = await listUsers(req.user, req.query, req.tenantId);
     return res.json({ success: true, message: 'Users loaded', data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getUserById = async (req, res, next) => {
+  try {
+    const user = await getUser(req.user, req.params.id, req.tenantId);
+    if (!user) throw notFound();
+    return res.json({ success: true, message: 'User loaded', data: { user: publicUser(user) } });
   } catch (error) {
     return next(error);
   }

@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests and dependency audit
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand(\"ping\").ok' | grep -q 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      MONGODB_URI: mongodb://localhost:27017/tailoros
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      JWT_SECRET: ci-test-secret-not-used-in-production
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-used-in-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm test --prefix backend
+      - run: npm audit --prefix backend --audit-level=high
+
+  frontend:
+    name: Frontend tests, build, and dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: npm test --prefix frontend
+      - run: npm run build --prefix frontend
+      - run: npm audit --prefix frontend --audit-level=high
+
+  container-build:
+    name: Build production containers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Validate production deployment configuration
+        run: |
+          umask 077
+          trap 'rm -f .env.production' EXIT
+          cat > .env.production <<'ENV'
+          DOMAIN=tailoros.test
+          MONGO_ROOT_USER=root
+          MONGO_ROOT_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          MONGO_APP_USER=tailoros_app
+          MONGO_APP_PASSWORD=1123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          MONGO_DATABASE=tailoros
+          MONGODB_URI=mongodb://tailoros_app:1123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef@mongodb:27017/tailoros?authSource=tailoros
+          REDIS_PASSWORD=2123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          JWT_SECRET=3123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          JWT_REFRESH_SECRET=4123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          BARCODE_SIGNING_SECRET=5123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          CORS_ORIGIN=https://tailoros.test
+          ENV
+          sh ./deploy/validate-production-env.sh .env.production
+          docker compose --env-file .env.production -f docker-compose.production.yml config --quiet
+      - run: docker build -f docker/backend.dockerfile .
+      - run: docker build -f docker/frontend.dockerfile .
