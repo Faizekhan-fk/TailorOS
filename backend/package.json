@@ -20,7 +20,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "bullmq": "^6.3.11",
     "bwip-js": "^4.11.4",
     "cookie-parser": "^1.4.6",
